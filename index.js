@@ -34,7 +34,7 @@ const client = new Client({
 });
 
 // ----- 設定 -----
-const ANNOUNCE_CHANNEL_ID = "1351791006491873311"; // 通知用チャンネル
+const ANNOUNCE_CHANNEL_ID = "1401813155310473289"; // 通知用チャンネル
 const DATA_FILE = "./eventData.json";
 const VC_ID = "1290692251458076677";
 const VC_CHECK_INTERVAL = 60 * 1000; // 1分
