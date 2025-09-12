@@ -156,7 +156,7 @@ client.on("interactionCreate", async (interaction)=>{
       if(!msg) return console.error("メッセージ取得失敗");
 
       const embed = createEventEmbedStored(data, participants,"active");
-      await msg.edit({ content:"新しいイベントが作成されました！", embeds:[embed], components:[createActionRow(eventId)] });
+      await msg.edit({ content:"@everyone 新しいイベントが作成されました！", embeds:[embed], components:[createActionRow(eventId)] });
       saveData();
       await interaction.reply({ content:"参加者リストを更新しました！", ephemeral:true });
     } catch(err){ console.error("ボタン処理エラー:",err); }
