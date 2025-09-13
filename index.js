@@ -33,10 +33,123 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildPresences
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.MessageContent // メッセージ内容を取得するために必要
   ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
+
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, StreamType, getVoiceConnection } = require('@discordjs/voice');
+const fetch = require('node-fetch');
+const path = require('path');
+
+let ttsQueue = []; // 読み上げキュー
+let isPlaying = false;
+//// TTS設定格納用
+  let ttsSettings = {}; // guildIdごとに { textId, vcId } を保持
+
+// TTS生成と再生
+// index.js (playTTS関数内)
+
+async function playTTS(guildId, vcChannelId, text) {
+  const filePath = path.join(__dirname, `tts_${Date.now()}.mp3`);
+
+  // --- ステップ1: audio_queryでクエリを生成 ---
+  // URLにtextパラメータを追加し、POSTメソッドでリクエスト
+  const audioQueryRes = await fetch(`http://localhost:50021/audio_query?speaker=14&text=${encodeURIComponent(text)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+  });
+
+  // レスポンスが成功したかを確認
+  if (!audioQueryRes.ok) {
+    const errorText = await audioQueryRes.text();
+    console.error(`audio_queryエラー: ${audioQueryRes.status} ${audioQueryRes.statusText}`);
+    console.error(`詳細: ${errorText}`);
+    return;
+  }
+
+  const query = await audioQueryRes.json();
+
+  // --- ステップ2: synthesisで音声を合成 ---
+  const synthRes = await fetch(`http://localhost:50021/synthesis?speaker=14`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(query)
+  });
+
+  if (!synthRes.ok) {
+    const errorText = await synthRes.text();
+    console.error(`synthesisエラー: ${synthRes.status} ${synthRes.statusText}`);
+    console.error(`詳細: ${errorText}`);
+    return;
+  }
+
+  const buffer = Buffer.from(await synthRes.arrayBuffer());
+  console.log(`生成された音声ファイルのサイズ: ${buffer.length} バイト`);
+
+  fs.writeFileSync(filePath, buffer);
+
+  ttsQueue.push({ guildId, vcChannelId, filePath });
+  if (!isPlaying) playNext();
+}
+
+// キュー再生処理
+// index.js (playNext関数内)
+async function playNext() {
+  if (ttsQueue.length === 0) {
+    isPlaying = false;
+    return;
+  }
+
+  console.log('読み上げキューから次のメッセージを再生します。');
+
+  isPlaying = true;
+  const { guildId, vcChannelId, filePath } = ttsQueue.shift();
+
+  // 既存の接続を取得、なければ新規に接続を試みる
+  let connection = getVoiceConnection(guildId);
+  if (!connection) {
+    console.log('VCに接続されていません。接続を試みます...');
+    try {
+      connection = joinVoiceChannel({
+        channelId: vcChannelId,
+        guildId: guildId,
+        adapterCreator: client.guilds.cache.get(guildId).voiceAdapterCreator
+      });
+      console.log('VCへの接続に成功しました。');
+    } catch (e) {
+      console.error('VCへの接続に失敗しました:', e);
+      isPlaying = false;
+      return;
+    }
+  }
+
+  const player = createAudioPlayer();
+  const resource = createAudioResource(filePath, { inputType: StreamType.Arbitrary });
+
+  // プレイヤーの状態をログで監視 (デバッグ用)
+  player.on(AudioPlayerStatus.Playing, () => {
+    console.log('オーディオ再生が開始されました！');
+  });
+
+  player.on(AudioPlayerStatus.Idle, () => {
+    console.log('オーディオ再生が終了しました。ファイルを削除します。');
+    fs.unlinkSync(filePath);
+    playNext();
+  });
+
+  player.on('error', error => {
+    console.error(`プレイヤーエラー: ${error.message}`);
+    fs.unlinkSync(filePath);
+    playNext();
+  });
+
+  player.play(resource);
+  connection.subscribe(player);
+}
+
+
 
 // ----- 設定 -----
 const EVENT_ANNOUNCE_CHANNEL_ID = "1401813155310473289"; // 通知用チャンネル
@@ -220,26 +333,33 @@ const commands = [
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("ヘルプを表示します"),
-  // ----- スラッシュコマンド定義 追加 -----
   new SlashCommandBuilder()
-      .setName("joinvc")
-      .setDescription("ボイスチャンネルにBotを参加させます")
-      .addChannelOption(option =>
-        option.setName("vc")
-          .setDescription("参加させたいボイスチャンネルを選択")
-          .setRequired(true)
-          .addChannelTypes([ChannelType.GuildVoice]) // ← 配列で渡す
-      ),
-
-    new SlashCommandBuilder()
-      .setName("leavevc")
-      .setDescription("Botをボイスチャンネルから退出させます")
-      .addChannelOption(option =>
-        option.setName("vc")
-          .setDescription("退出させたいボイスチャンネルを選択")
-          .setRequired(true)
-          .addChannelTypes([ChannelType.GuildVoice]) // ← 配列で渡す
-  )
+    .setName("settts")
+    .setDescription("📢 テキスト→VC読み上げを設定")
+    .addChannelOption(opt =>
+      opt.setName("text")
+         .setDescription("読み上げするテキストチャンネル")
+         .setRequired(true)
+         .addChannelTypes([ChannelType.GuildText])
+    )
+    .addChannelOption(opt =>
+      opt.setName("voice")
+         .setDescription("Botが参加するVC")
+         .setRequired(true)
+         .addChannelTypes([ChannelType.GuildVoice])
+    ),
+  new SlashCommandBuilder()
+    .setName("joinvc")
+    .setDescription("ボイスチャンネルに参加します")
+    .addChannelOption(option =>
+      option.setName("vc")
+            .setDescription("参加するボイスチャンネル")
+            .setRequired(true)
+            .addChannelTypes([ChannelType.GuildVoice])
+    ),
+  new SlashCommandBuilder()
+    .setName("leavevc")
+    .setDescription("VCから退出します")
 ].map(c => c.toJSON());
 
 
@@ -437,7 +557,17 @@ client.on("interactionCreate", async (interaction)=>{
        return;
    }
 
+   if(interaction.commandName === "settts") {
+     const textChannel = interaction.options.getChannel("text");
+     const vcChannel = interaction.options.getChannel("voice");
 
+     ttsSettings[interaction.guildId] = { textId: textChannel.id, vcId: vcChannel.id };
+
+     await interaction.reply({
+       content: `✅ ${textChannel.name} のメッセージを ${vcChannel.name} で読み上げます。`,
+       ephemeral: true
+     });
+   }
 
  // ★ Gemini AI
 const fs = require("fs");
@@ -547,18 +677,11 @@ if (!interaction.isCommand()) return;
     }
 
     if (interaction.commandName === "leavevc") {
-      const vc = interaction.options.getChannel("vc");
-
-      if (!vc || !vc.isVoiceBased?.()) {
-        return interaction.reply({ content: "ボイスチャンネルを選んでください。", ephemeral: true });
-      }
-
-      const { getVoiceConnection } = require("@discordjs/voice");
       const connection = getVoiceConnection(interaction.guild.id);
 
       if (connection) {
         connection.destroy();
-        return interaction.reply({ content: `✅ ${vc.name} から退出しました。`, ephemeral: true });
+        return interaction.reply({ content: `✅ VCから退出しました。`, ephemeral: true });
       } else {
         return interaction.reply({ content: "BotはこのVCに参加していません。", ephemeral: true });
       }
@@ -583,6 +706,28 @@ if (!interaction.isCommand()) return;
     }
   }
 });
+
+// ----- メッセージ監視 & 読み上げ -----
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return; // Botのメッセージは無視
+
+  const setting = ttsSettings[message.guildId];
+  if (!setting) return; // 設定が無ければ無視
+  if (message.channel.id !== setting.textId) return; // 指定チャンネル以外は無視
+  if (message.content.length === 0 || message.attachments.size > 0 || message.content.startsWith('/')) return; // 空のメッセージ、添付ファイル、コマンドは無視
+
+  // デバッグ用: 取得したテキスト内容をコンソールに出力
+    console.log(`取得したメッセージ: ${message.content}`);
+
+    if (message.content.length === 0 || message.attachments.size > 0 || message.content.startsWith('/')) {
+        console.log('読み上げをスキップしました。');
+        return;
+    }
+
+  // 読み上げ
+  playTTS(message.guild.id, setting.vcId, message.content);
+});
+
 
 // ----- 起動 -----
 client.login(BOT_TOKEN).catch(err=>console.error("ログイン失敗:",err));
