@@ -34,7 +34,8 @@ const client = new Client({
 });
 
 // ----- 設定 -----
-const ANNOUNCE_CHANNEL_ID = "1401813155310473289"; // 通知用チャンネル
+const EVENT_ANNOUNCE_CHANNEL_ID = "1401813155310473289"; // 通知用チャンネル
+const VC_ANNOUNCE_CHANNEL_ID = "1351791006491873311";
 const DATA_FILE = "./eventData.json";
 const VC_ID = "1290692251458076677";
 const VC_CHECK_INTERVAL = 60 * 1000; // 1分
@@ -97,7 +98,7 @@ async function checkVC(){
     const now = Date.now();
     if(now - lastVCAnnounce < VC_COOLDOWN) return;
 
-    const announceChannel = guild.channels.cache.get(ANNOUNCE_CHANNEL_ID);
+    const announceChannel = guild.channels.cache.get(VC_ANNOUNCE_CHANNEL_ID);
     if(!announceChannel || !announceChannel.isTextBased()) return;
 
     await announceVCStatusText(vc, nonBotMembers, announceChannel);
@@ -110,7 +111,7 @@ async function checkVC(){
 // ----- イベント管理 -----
 client.on("guildScheduledEventCreate", async (event)=>{
   try{
-    const channel = await client.channels.fetch(ANNOUNCE_CHANNEL_ID);
+    const channel = await client.channels.fetch(EVENT_ANNOUNCE_CHANNEL_ID);
     if(!channel || !channel.isTextBased?.()) return;
 
     let creator = event.creator?.username;
