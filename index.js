@@ -1,5 +1,5 @@
 // index.js
-// v1.0.3
+// v1.1.6
 //cd C:\Users\sushi\Downloads\チルBOT
 //node index.js
 
