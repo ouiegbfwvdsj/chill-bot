@@ -190,7 +190,7 @@ client.on("guildScheduledEventUpdate", async (oldEvent,newEvent)=>{
   }
 });
 
-// ----- スラッシュコマンド -----
+// ----- スラッシュコマンド定義 -----
 const commands = [
   new SlashCommandBuilder().setName("dice").setDescription("🎲 サイコロを振ります (1〜6)"),
   new SlashCommandBuilder().setName("ping").setDescription("📡 Botの応答速度を確認します"),
