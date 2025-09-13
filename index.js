@@ -89,7 +89,6 @@ async function announceVCStatusText(vc, nonBotMembers, announceChannel){
   const msg = `ステータス書いてね`; // そのまま残す
   await announceChannel.send(msg);
 }
-
 async function checkVC(){
   try{
     const guild = client.guilds.cache.first();
@@ -144,7 +143,6 @@ client.on("guildScheduledEventCreate", async (event)=>{
     saveData();
   } catch(err){ console.error("イベント作成エラー:",err); }
 });
-
 // ボタン
 client.on("interactionCreate", async (interaction)=>{
   if(interaction.isButton()){
@@ -171,7 +169,6 @@ client.on("interactionCreate", async (interaction)=>{
     } catch(err){ console.error("ボタン処理エラー:",err); }
   }
 });
-
 // キャンセル/終了判定
 client.on("guildScheduledEventDelete", async (event)=>{
   const data = eventData[event.id]; if(!data) return;
@@ -198,6 +195,11 @@ client.on("guildScheduledEventUpdate", async (oldEvent,newEvent)=>{
   }
 });
 
+
+
+
+
+
 // ----- スラッシュコマンド定義 -----
 const commands = [
   new SlashCommandBuilder().setName("dice").setDescription("🎲 サイコロを振ります (1〜6)"),
@@ -221,7 +223,31 @@ const commands = [
   new SlashCommandBuilder()
     .setName("help")
     .setDescription("ヘルプを表示します"),
+  // ----- スラッシュコマンド定義 追加 -----
+  new SlashCommandBuilder()
+      .setName("joinvc")
+      .setDescription("ボイスチャンネルにBotを参加させます")
+      .addChannelOption(option =>
+        option.setName("vc")
+          .setDescription("参加させたいボイスチャンネルを選択")
+          .setRequired(true)
+          .addChannelTypes([ChannelType.GuildVoice]) // ← 配列で渡す
+      ),
+
+    new SlashCommandBuilder()
+      .setName("leavevc")
+      .setDescription("Botをボイスチャンネルから退出させます")
+      .addChannelOption(option =>
+        option.setName("vc")
+          .setDescription("退出させたいボイスチャンネルを選択")
+          .setRequired(true)
+          .addChannelTypes([ChannelType.GuildVoice]) // ← 配列で渡す
+  )
 ].map(c => c.toJSON());
+
+
+
+
 
 
 // ----- ready -----
@@ -272,6 +298,11 @@ client.once("clientReady", async () => {
   // VC監視開始
   setInterval(checkVC, VC_CHECK_INTERVAL);
 });
+
+
+
+
+
 
 
 // ----- スラッシュコマンド処理 -----
@@ -491,6 +522,52 @@ if (interaction.commandName === "ai") {
     }
   }
 }
+
+if (!interaction.isCommand()) return;
+
+  try {
+    if (interaction.commandName === "joinvc") {
+      const vc = interaction.options.getChannel("vc");
+
+      if (!vc || !vc.isVoiceBased?.()) {
+        return interaction.reply({ content: "ボイスチャンネルを選んでください。", ephemeral: true });
+      }
+
+      const { joinVoiceChannel } = require("@discordjs/voice");
+
+      joinVoiceChannel({
+        channelId: vc.id,
+        guildId: interaction.guild.id,
+        adapterCreator: interaction.guild.voiceAdapterCreator,
+      });
+
+      return interaction.reply({ content: `✅ ${vc.name} に参加しました。`, ephemeral: true });
+    }
+
+    if (interaction.commandName === "leavevc") {
+      const vc = interaction.options.getChannel("vc");
+
+      if (!vc || !vc.isVoiceBased?.()) {
+        return interaction.reply({ content: "ボイスチャンネルを選んでください。", ephemeral: true });
+      }
+
+      const { getVoiceConnection } = require("@discordjs/voice");
+      const connection = getVoiceConnection(interaction.guild.id);
+
+      if (connection) {
+        connection.destroy();
+        return interaction.reply({ content: `✅ ${vc.name} から退出しました。`, ephemeral: true });
+      } else {
+        return interaction.reply({ content: "BotはこのVCに参加していません。", ephemeral: true });
+      }
+    }
+
+  } catch (err) {
+    console.error("VCコマンド処理エラー:", err);
+    if (!interaction.replied) {
+      try { await interaction.reply({ content: "VC操作中にエラーが発生しました。", ephemeral: true }); } catch {}
+    }
+  }
 
 
 
