@@ -362,7 +362,7 @@ const commands = [
 const gradient = require('gradient-string').default;
 
 client.once("clientReady", async () => {
-  const art = (`                                                                                                               ver1.1.11
+  const art = (`                                                                                                               ver1.1.16
    ██████╗██╗  ██╗██╗██╗     ██╗     ██████╗  ██████╗ ████████╗
   ██╔════╝██║  ██║██║██║     ██║     ██╔══██╗██╔═══██╗╚══██╔══╝
   ██║     ███████║██║██║     ██║     ██████╔╝██║   ██║   ██║
@@ -444,7 +444,7 @@ client.on("interactionCreate", async (interaction)=>{
     }
 
     if(interaction.commandName==="ping"){
-      const sent = await interaction.reply({ content:"🏓 計測中...", fetchReply:true });
+      const sent = await interaction.reply({ content:"🏓 計測中...", withResponse:true });
       const latency = sent.createdTimestamp - interaction.createdTimestamp;
       const apiLatency = Math.round(client.ws.ping);
       await interaction.editReply(`🏓 Pong!\n・応答速度: **${latency}ms**\n・API レイテンシ: **${apiLatency}ms**`);
