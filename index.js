@@ -86,7 +86,7 @@ async function playTTS(guildId, vcChannelId, text) {
   }
 
   const buffer = Buffer.from(await synthRes.arrayBuffer());
-  console.log(`生成された音声ファイルのサイズ: ${buffer.length} バイト`);
+  //console.log(`生成された音声ファイルのサイズ: ${buffer.length} バイト`);
 
   fs.writeFileSync(filePath, buffer);
 
@@ -102,7 +102,7 @@ async function playNext() {
     return;
   }
 
-  console.log('読み上げキューから次のメッセージを再生します。');
+  //console.log('読み上げキューから次のメッセージを再生します。');
 
   isPlaying = true;
   const { guildId, vcChannelId, filePath } = ttsQueue.shift();
@@ -130,11 +130,11 @@ async function playNext() {
 
   // プレイヤーの状態をログで監視 (デバッグ用)
   player.on(AudioPlayerStatus.Playing, () => {
-    console.log('オーディオ再生が開始されました！');
+    //console.log('オーディオ再生が開始されました！');
   });
 
   player.on(AudioPlayerStatus.Idle, () => {
-    console.log('オーディオ再生が終了しました。ファイルを削除します。');
+    //console.log('オーディオ再生が終了しました。ファイルを削除します。');
     fs.unlinkSync(filePath);
     playNext();
   });
@@ -260,7 +260,7 @@ client.on("interactionCreate", async (interaction)=>{
       const [action,eventId] = interaction.customId.split("_");
       const data = eventData[eventId];
       if(!data || data.status!=="active"){
-        await interaction.reply({ content:"このイベントは参加できません。", ephemeral:true });
+        await interaction.reply({ content:"このイベントは参加できません。", flags: 64 });
         return;
       }
 
@@ -275,7 +275,7 @@ client.on("interactionCreate", async (interaction)=>{
       const embed = createEventEmbedStored(data, participants,"active");
       await msg.edit({ content:"@everyone 新しいイベントが作成されました！", embeds:[embed], components:[createActionRow(eventId)] });
       saveData();
-      await interaction.reply({ content:"参加者リストを更新しました！", ephemeral:true });
+      await interaction.reply({ content:"参加者リストを更新しました！", flags: 64 });
     } catch(err){ console.error("ボタン処理エラー:",err); }
   }
 });
@@ -334,29 +334,20 @@ const commands = [
     .setName("help")
     .setDescription("ヘルプを表示します"),
   new SlashCommandBuilder()
-    .setName("settts")
-    .setDescription("📢 テキスト→VC読み上げを設定")
-    .addChannelOption(opt =>
-      opt.setName("text")
-         .setDescription("読み上げするテキストチャンネル")
-         .setRequired(true)
-         .addChannelTypes([ChannelType.GuildText])
-    )
-    .addChannelOption(opt =>
-      opt.setName("voice")
-         .setDescription("Botが参加するVC")
-         .setRequired(true)
-         .addChannelTypes([ChannelType.GuildVoice])
-    ),
-  new SlashCommandBuilder()
-    .setName("joinvc")
-    .setDescription("ボイスチャンネルに参加します")
-    .addChannelOption(option =>
-      option.setName("vc")
-            .setDescription("参加するボイスチャンネル")
-            .setRequired(true)
-            .addChannelTypes([ChannelType.GuildVoice])
-    ),
+      .setName("joinvc")
+      .setDescription("📢 VCに参加し、指定チャンネルのメッセージを読み上げます")
+      .addChannelOption(option =>
+        option.setName("vc")
+              .setDescription("Botが参加するボイスチャンネル")
+              .setRequired(true)
+              .addChannelTypes([ChannelType.GuildVoice])
+      )
+      .addChannelOption(option =>
+        option.setName("text")
+              .setDescription("読み上げるテキストチャンネル")
+              .setRequired(true)
+              .addChannelTypes([ChannelType.GuildText])
+      ),
   new SlashCommandBuilder()
     .setName("leavevc")
     .setDescription("VCから退出します")
@@ -371,14 +362,14 @@ const commands = [
 const gradient = require('gradient-string').default;
 
 client.once("clientReady", async () => {
-  const art = (`
+  const art = (`                                                                                                               ver1.1.11
    ██████╗██╗  ██╗██╗██╗     ██╗     ██████╗  ██████╗ ████████╗
   ██╔════╝██║  ██║██║██║     ██║     ██╔══██╗██╔═══██╗╚══██╔══╝
   ██║     ███████║██║██║     ██║     ██████╔╝██║   ██║   ██║
   ██║     ██╔══██║██║██║     ██║     ██╔══██╗██║   ██║   ██║
   ╚██████╗██║  ██║██║███████╗███████╗██████╔╝╚██████╔╝   ██║
    ╚═════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═════╝  ╚═════╝    ╚═╝
-   `);
+`);
 
     console.log(gradient(['#34306d', '#cb92fd'])(art));
 
@@ -400,7 +391,26 @@ client.once("clientReady", async () => {
         Routes.applicationGuildCommands(client.user.id, GUILD_ID),
         { body: commands }
       );
-      console.log(`✅ ギルド ${GUILD_ID} にコマンド登録`);
+      console.log(`✅ ギルド ${GUILD_ID} にコマンド登録
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      `);
+//17行の空白入れてCMDの見栄えよくした
     } else {
       await rest.put(
         Routes.applicationCommands(client.user.id),
@@ -489,7 +499,7 @@ client.on("interactionCreate", async (interaction)=>{
           { name:"サーバーID", value:`${guild.id}`, inline:true },
           { name:"オーナー", value:`${ownerTag}`, inline:true },
           { name:"メンバー数", value:`${memberCount}`, inline:true },
-          { name:"オンライン数（キャッシュ）", value:`${onlineCount}`, inline:true },
+          { name:"オンライン数（概算）", value:`${onlineCount}`, inline:true },
           { name:"テキストチャンネル数", value:`${textChannels}`, inline:true },
           { name:"ボイスチャンネル数", value:`${voiceChannels}`, inline:true },
           { name:"ロール数", value:`${roleCount}`, inline:true },
@@ -549,160 +559,147 @@ client.on("interactionCreate", async (interaction)=>{
       return;
     }
 
-   if (interaction.commandName === "help") {
+    if (interaction.commandName === "help") {
        await interaction.reply({
            content: "ヘルプなんてねえよ",
-           ephemeral: true  // ← これで一時表示メッセージになります
+           flags: 64
        });
        return;
-   }
-
-   if(interaction.commandName === "settts") {
-     const textChannel = interaction.options.getChannel("text");
-     const vcChannel = interaction.options.getChannel("voice");
-
-     ttsSettings[interaction.guildId] = { textId: textChannel.id, vcId: vcChannel.id };
-
-     await interaction.reply({
-       content: `✅ ${textChannel.name} のメッセージを ${vcChannel.name} で読み上げます。`,
-       ephemeral: true
-     });
-   }
-
- // ★ Gemini AI
-const fs = require("fs");
-const path = require("path");
-
-// ===== AI利用回数（全員共通） =====
-const usageFile = path.join(__dirname, "aiUsage.json");
-const MAX_USAGE_PER_DAY = 250;
-
-// ファイルから読み込み（存在しなければ初期化）
-let aiUsage = { count: 0, lastReset: new Date().toDateString() };
-if (fs.existsSync(usageFile)) {
-  try {
-    const data = JSON.parse(fs.readFileSync(usageFile, "utf8"));
-    if (data && typeof data.count === "number" && data.lastReset) {
-      aiUsage = data;
     }
-  } catch (e) {
-    console.error("⚠️ aiUsage.json の読み込みに失敗しました。初期化します。");
-  }
-}
 
-// 保存関数
-function saveUsage() {
-  fs.writeFileSync(usageFile, JSON.stringify(aiUsage, null, 2), "utf8");
-}
+    if(interaction.commandName === "settts") {
+      const textChannel = interaction.options.getChannel("text");
+      const vcChannel = interaction.options.getChannel("voice");
 
-// ===== /ai コマンド =====
-if (interaction.commandName === "ai") {
-  const today = new Date().toDateString();
+      ttsSettings[interaction.guildId] = { textId: textChannel.id, vcId: vcChannel.id };
 
-  // 日付が変わったらリセット
-  if (aiUsage.lastReset !== today) {
-    aiUsage.count = 0;
-    aiUsage.lastReset = today;
-    saveUsage();
-  }
-
-  // 上限チェック
-  if (aiUsage.count >= MAX_USAGE_PER_DAY) {
-    await interaction.reply("⚠️ 本日のAI利用回数が上限 **250** に達しました。");
-    return;
-  }
-
-  const userPrompt = interaction.options.getString("prompt");
-  try {
-    await interaction.deferReply();
-
-    const result = await model.generateContent({
-      contents: [{
-        role: "user",
-        parts: [{ text: `\n${userPrompt}` }]
-      }]
-    });
-
-    const response = result.response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    if (!response) {
-      await interaction.editReply("⚠️ 応答を生成できませんでした。");
+      await interaction.reply({
+        content: `✅ ${textChannel.name} のメッセージを ${vcChannel.name} で読み上げます。`,
+        flags: 64
+      });
       return;
     }
 
-    // 成功したのでカウントを増やして保存
-    aiUsage.count++;
-    saveUsage();
-
-    const remaining = MAX_USAGE_PER_DAY - aiUsage.count;
-
-    // 長文対応
-    const chunks = response.match(/[\s\S]{1,1900}/g) || [];
-    const firstMessage =
-      `**${interaction.user.tag}**\n> ${userPrompt}\n\n**回答**\n${chunks[0]}\n\n⚡残り利用可能回数**${remaining}** / ${MAX_USAGE_PER_DAY}`;
-    await interaction.editReply(firstMessage);
-
-    for (let i = 1; i < chunks.length; i++) {
-      await interaction.followUp(chunks[i]);
+    if(interaction.commandName === "ai") {
+      const fs = require("fs");
+      const path = require("path");
+      const usageFile = path.join(__dirname, "aiUsage.json");
+      const MAX_USAGE_PER_DAY = 250;
+      let aiUsage = { count: 0, lastReset: new Date().toDateString() };
+      if (fs.existsSync(usageFile)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(usageFile, "utf8"));
+          if (data && typeof data.count === "number" && data.lastReset) {
+            aiUsage = data;
+          }
+        } catch (e) {
+          console.error("⚠️ aiUsage.json の読み込みに失敗しました。初期化します。");
+        }
+      }
+      function saveUsage() {
+        fs.writeFileSync(usageFile, JSON.stringify(aiUsage, null, 2), "utf8");
+      }
+      const today = new Date().toDateString();
+      if (aiUsage.lastReset !== today) {
+        aiUsage.count = 0;
+        aiUsage.lastReset = today;
+        saveUsage();
+      }
+      if (aiUsage.count >= MAX_USAGE_PER_DAY) {
+        await interaction.reply("⚠️ 本日のAI利用回数が上限 **250** に達しました。");
+        return;
+      }
+      const userPrompt = interaction.options.getString("prompt");
+      try {
+        await interaction.deferReply();
+        const result = await model.generateContent({
+          contents: [{
+            role: "user",
+            parts: [{ text: `\n${userPrompt}` }]
+          }]
+        });
+        const response = result.response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        if (!response) {
+          await interaction.editReply("⚠️ 応答を生成できませんでした。");
+          return;
+        }
+        aiUsage.count++;
+        saveUsage();
+        const remaining = MAX_USAGE_PER_DAY - aiUsage.count;
+        const chunks = response.match(/[\s\S]{1,1900}/g) || [];
+        const firstMessage =
+          `**${interaction.user.tag}**\n> ${userPrompt}\n\n**回答**\n${chunks[0]}\n\n⚡残り利用可能回数**${remaining}** / ${MAX_USAGE_PER_DAY}`;
+        await interaction.editReply(firstMessage);
+        for (let i = 1; i < chunks.length; i++) {
+          await interaction.followUp(chunks[i]);
+        }
+      } catch (error) {
+        console.error("Gemini AI エラー:", error);
+        if (error.status === 503) {
+          await interaction.editReply("⚠️ AIサービスが現在、過負荷状態です。数分後にもう一度試してください。");
+        } else {
+          await interaction.editReply("⚠️ AI応答中にエラーが発生しました。");
+        }
+      }
+      return;
     }
 
-  } catch (error) {
-    console.error("Gemini AI エラー:", error);
-    if (error.status === 503) {
-      await interaction.editReply("⚠️ AIサービスが現在、過負荷状態です。数分後にもう一度試してください。");
-    } else {
-      await interaction.editReply("⚠️ AI応答中にエラーが発生しました。");
-    }
-  }
-}
-
-if (!interaction.isCommand()) return;
-
-  try {
     if (interaction.commandName === "joinvc") {
       const vc = interaction.options.getChannel("vc");
+      const textChannel = interaction.options.getChannel("text");
 
-      if (!vc || !vc.isVoiceBased?.()) {
-        return interaction.reply({ content: "ボイスチャンネルを選んでください。", ephemeral: true });
+      if (!vc || vc.type !== ChannelType.GuildVoice) {
+        return interaction.reply({ content: "ボイスチャンネルを選んでください。", flags: 64 });
       }
 
-      const { joinVoiceChannel } = require("@discordjs/voice");
+      if (!textChannel || textChannel.type !== ChannelType.GuildText) {
+        return interaction.reply({ content: "読み上げるテキストチャンネルを選んでください。", flags: 64 });
+      }
 
-      joinVoiceChannel({
-        channelId: vc.id,
-        guildId: interaction.guild.id,
-        adapterCreator: interaction.guild.voiceAdapterCreator,
-      });
+      try {
+        const { joinVoiceChannel, getVoiceConnection } = require("@discordjs/voice");
+        let connection = getVoiceConnection(interaction.guild.id);
 
-      return interaction.reply({ content: `✅ ${vc.name} に参加しました。`, ephemeral: true });
+        if (connection) {
+          connection.destroy();
+        }
+
+        connection = joinVoiceChannel({
+          channelId: vc.id,
+          guildId: interaction.guild.id,
+          adapterCreator: interaction.guild.voiceAdapterCreator,
+        });
+
+        ttsSettings[interaction.guildId] = { textId: textChannel.id, vcId: vc.id };
+
+        await interaction.reply({
+          content: `✅ ${vc.name} に参加し、${textChannel.name} のメッセージを読み上げます。`,
+          flags: 64
+        });
+      } catch (err) {
+        console.error("VC参加エラー:", err);
+        await interaction.reply({
+          content: "VC参加中にエラーが発生しました。",
+          flags: 64
+        });
+      }
+      return;
     }
 
     if (interaction.commandName === "leavevc") {
       const connection = getVoiceConnection(interaction.guild.id);
-
       if (connection) {
         connection.destroy();
-        return interaction.reply({ content: `✅ VCから退出しました。`, ephemeral: true });
+        return interaction.reply({ content: `✅ VCから退出しました。`, flags: 64 });
       } else {
-        return interaction.reply({ content: "BotはこのVCに参加していません。", ephemeral: true });
+        return interaction.reply({ content: "BotはこのVCに参加していません。", flags: 64 });
       }
     }
-
-  } catch (err) {
-    console.error("VCコマンド処理エラー:", err);
-    if (!interaction.replied) {
-      try { await interaction.reply({ content: "VC操作中にエラーが発生しました。", ephemeral: true }); } catch {}
-    }
-  }
-
-
-
-
-
 
   } catch(err){
     console.error("スラッシュ処理エラー:",err);
     if(interaction && !interaction.replied){
-      try{ await interaction.reply({ content:"エラーが発生しました (ログ参照)", ephemeral:true }); } catch{}
+      try{ await interaction.reply({ content:"エラーが発生しました (ログ参照)", flags: 64 }); } catch{}
     }
   }
 });
@@ -717,7 +714,7 @@ client.on("messageCreate", async (message) => {
   if (message.content.length === 0 || message.attachments.size > 0 || message.content.startsWith('/')) return; // 空のメッセージ、添付ファイル、コマンドは無視
 
   // デバッグ用: 取得したテキスト内容をコンソールに出力
-    console.log(`取得したメッセージ: ${message.content}`);
+    //console.log(`取得したメッセージ: ${message.content}`);
 
     if (message.content.length === 0 || message.attachments.size > 0 || message.content.startsWith('/')) {
         console.log('読み上げをスキップしました。');
