@@ -268,7 +268,7 @@ client.on("interactionCreate", async (interaction)=>{
       if(action==="join"){ if(!participants.includes(interaction.user.username)) participants.push(interaction.user.username); }
       else if(action==="leave"){ const index=participants.indexOf(interaction.user.username); if(index>-1) participants.splice(index,1); }
 
-      const channel = await client.channels.fetch(ANNOUNCE_CHANNEL_ID);
+      const channel = await client.channels.fetch(EVENT_ANNOUNCE_CHANNEL_ID);
       const msg = await channel.messages.fetch(data.messageId).catch(()=>null);
       if(!msg) return console.error("メッセージ取得失敗");
 
@@ -282,7 +282,7 @@ client.on("interactionCreate", async (interaction)=>{
 // キャンセル/終了判定
 client.on("guildScheduledEventDelete", async (event)=>{
   const data = eventData[event.id]; if(!data) return;
-  const channel = await client.channels.fetch(ANNOUNCE_CHANNEL_ID);
+  const channel = await client.channels.fetch(EVENT_ANNOUNCE_CHANNEL_ID);
   const msg = await channel.messages.fetch(data.messageId).catch(()=>null);
   if(msg){
     const embed = createEventEmbedStored(data,data.participants,"cancelled");
@@ -295,7 +295,7 @@ client.on("guildScheduledEventUpdate", async (oldEvent,newEvent)=>{
   const data = eventData[newEvent.id]; if(!data || data.status!=="active") return;
   const now = Date.now();
   if(newEvent.scheduledEndTimestamp && now>newEvent.scheduledEndTimestamp){
-    const channel = await client.channels.fetch(ANNOUNCE_CHANNEL_ID);
+    const channel = await client.channels.fetch(EVENT_ANNOUNCE_CHANNEL_ID);
     const msg = await channel.messages.fetch(data.messageId).catch(()=>null);
     if(msg){
       const embed = createEventEmbedStored(data,data.participants,"ended");
@@ -713,8 +713,19 @@ client.on("messageCreate", async (message) => {
   if (message.channel.id !== setting.textId) return; // 指定チャンネル以外は無視
   if (message.content.length === 0 || message.attachments.size > 0 || message.content.startsWith('/')) return; // 空のメッセージ、添付ファイル、コマンドは無視
 
+  if (message.attachments.size > 0 || message.content.startsWith('/')) return;
+  if (message.content.length === 0) return;
+
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+  let textToRead = message.content.replace(urlRegex, 'URL省略');
+
+  if (textToRead.trim().length === 0) {
+      console.log('URL省略');
+      return;
+  }
+
   // デバッグ用: 取得したテキスト内容をコンソールに出力
-    //console.log(`取得したメッセージ: ${message.content}`);
+    console.log(`取得したメッセージ: ${message.content}`);
 
     if (message.content.length === 0 || message.attachments.size > 0 || message.content.startsWith('/')) {
         console.log('読み上げをスキップしました。');
