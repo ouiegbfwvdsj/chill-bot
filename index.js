@@ -190,7 +190,7 @@ function createEventEmbedStored(eventStored, participants=[], status="active"){
 function createActionRow(eventId){
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`join_${eventId}`).setLabel("✅ 参加").setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`leave_${eventId}`).setLabel("❌ 不参加").setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId(`leave_${eventId}`).setLabel("❌ 参加取り消し").setStyle(ButtonStyle.Danger)
   );
 }
 
@@ -358,18 +358,21 @@ const commands = [
 
 
 
-// ----- ready -----
+// ----- clientready -----
 const gradient = require('gradient-string').default;
 
 client.once("clientReady", async () => {
-  const art = (`                                                                                                               ver1.1.16
-   ██████╗██╗  ██╗██╗██╗     ██╗     ██████╗  ██████╗ ████████╗
-  ██╔════╝██║  ██║██║██║     ██║     ██╔══██╗██╔═══██╗╚══██╔══╝
-  ██║     ███████║██║██║     ██║     ██████╔╝██║   ██║   ██║
-  ██║     ██╔══██║██║██║     ██║     ██╔══██╗██║   ██║   ██║
-  ╚██████╗██║  ██║██║███████╗███████╗██████╔╝╚██████╔╝   ██║
-   ╚═════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═════╝  ╚═════╝    ╚═╝
-`);
+  // `const art = "` の行を修正
+  const art = `
+                ,,          ,,    ,,    ,,        ,,
+    .g8"""bgd '7MM          db  '7MM  '7MM       *MM                  mm
+  .dP'     'M   MM                MM    MM        MM                  MM
+  dM'       '   MMpMMMb.  '7MM    MM    MM        MM,dMMb.   ,pW"Wq.mmMMmm
+  MM            MM    MM    MM    MM    MM        MM    'Mb 6W'   'Wb MM
+  MM.           MM    MM    MM    MM    MM        MM     M8 8M     M8 MM
+  'Mb.     ,'   MM    MM    MM    MM    MM        MM.   ,M9 YA.   ,A9 MM
+    ""bmmmd'  .JMML  JMML..JMML..JMML..JMML.      P^YbmdP'   'Ybmd9'  'Mbmo
+  `;
 
     console.log(gradient(['#34306d', '#cb92fd'])(art));
 
@@ -725,7 +728,7 @@ client.on("messageCreate", async (message) => {
   }
 
   // デバッグ用: 取得したテキスト内容をコンソールに出力
-    console.log(`取得したメッセージ: ${message.content}`);
+    //console.log(`取得したメッセージ: ${message.content}`);
 
     if (message.content.length === 0 || message.attachments.size > 0 || message.content.startsWith('/')) {
         console.log('読み上げをスキップしました。');
